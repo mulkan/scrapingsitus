@@ -1,0 +1,17 @@
+apply plugin: 'java'
+apply plugin: 'jacoco'
+apply plugin: 'application'
+
+
+mainClassName = 'JSOUP.Main'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation     'junit:junit:4.13'
+    implementation 'org.jsoup:jsoup:1.14.3'
+    implementation 'org.xerial:sqlite-jdbc:3.30.1'
+
+}
