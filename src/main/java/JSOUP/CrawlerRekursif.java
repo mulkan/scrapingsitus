@@ -15,18 +15,16 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 /**
  *
- * @author User
+ * @author mulkan.ms@gmail.com
+ * @webiste https://softscients.com
  */
 public class CrawlerRekursif {
     private ArrayList <String> VISITED_URL; //sebagai pencatat URL yang pernah dikunjungi
@@ -41,17 +39,17 @@ public class CrawlerRekursif {
         try {
             String db = "jdbc:sqlite:"+file.getPath();            
             conn = DriverManager.getConnection(db);
-            String sql = "CREATE TABLE IF NOT EXISTS link (\n"
+            String sql_create_table = "CREATE TABLE IF NOT EXISTS link (\n"
                     + "	id integer PRIMARY KEY,\n"
                     + "	name text NOT NULL, \n"
                     + "	error text \n"
                     + ");";
             Statement stmt = conn.createStatement();            
-            stmt.execute(sql);
-            String insert = "INSERT INTO link (name,error) VALUES(?,?)";
-            pstmt = conn.prepareStatement(insert);        
+            stmt.execute(sql_create_table);
+            String sql_insert = "INSERT INTO link (name,error) VALUES(?,?)";
+            pstmt = conn.prepareStatement(sql_insert);        
             VISITED_URL = new ArrayList();
-            this.URL=url;
+            this.URL = url;
             NAMA_HOST = new URL(url).getHost();
             Thread tr = new Thread(new Runnable(){
                 @Override
@@ -65,22 +63,6 @@ public class CrawlerRekursif {
             Logger.getLogger(CrawlerRekursif.class.getName()).log(Level.SEVERE, null, ex);
         } catch (SQLException e){
         }
-    }
-    
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String[] args) {
-        
-        //https://softscients.com/
-        //http://www.detik.com/
-        //https://idschool.net/
-        //https://www.reyneraea.com/        
-        
-        File file = new File("D:/cdc.db");
-        
-        CrawlerRekursif m = new CrawlerRekursif(file,"https://cdc.uns.ac.id/");
-        
     }
     private void scrap(String f){       
         try {
@@ -114,6 +96,9 @@ public class CrawlerRekursif {
                       !lnk.contains("page") & //ini untuk wordpress, abaikan page
                       !lnk.contains(".csv") &
                       !lnk.contains("category")){ //ini untuk wordpress, abaikan page
+                  //cek apakah alamat website tersebut, cocok dengan host utama?
+                  //bila tidak abaikan saja, karena yang akan yang crawl itu alamat utama
+                  //biar crawler nya tidak melebar jauh ke website punya orang lain                  
                   String host = new URL(lnk).getHost();
                   //jika link tersebut milik HOST, lanjutkan saja               
                   if(host.equals(NAMA_HOST) & !lnk.equals(URL)){ 
@@ -127,9 +112,12 @@ public class CrawlerRekursif {
                           VISITED_URL.add(lnk); //tambahkan ke visited_url
                           scrap(lnk); //lakukan scraping lagi           
                       }
+                  }else{
+                      //ini untuk alamat website selain alamat utama
+                      
                   }
               }
-              Thread.sleep(10);
+              Thread.sleep(10); //istirahat sejenak sebanyak 10 milidetik agar CPU Usage tidak naik!
             }                
         } catch (IOException e) {
             
@@ -138,5 +126,14 @@ public class CrawlerRekursif {
         }catch (SQLException e) {
             System.out.println(e.getMessage());
         }
+    }
+    
+    public static void main(String[] args) {        
+        //https://softscients.com/
+        //http://www.detik.com/
+        //https://idschool.net/
+        //https://www.reyneraea.com/               
+        File file = new File("D:/cdc.db"); //nama dan alamat datatabase sqlite        
+        CrawlerRekursif m = new CrawlerRekursif(file,"https://cdc.uns.ac.id/");        
     }
 }
