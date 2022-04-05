@@ -5,6 +5,7 @@
  */
 package JSOUP;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -28,33 +29,30 @@ import org.jsoup.select.Elements;
  * @author User
  */
 public class CrawlerRekursif {
-    ArrayList <String> VISITED_URL;
-    String MAIN_URL;
-    String MAIN_HOST;
-    int COUNT_INDEX = 1;
-    Connection conn = null;
-    PreparedStatement pstmt;
-    public CrawlerRekursif(String url){
+    private ArrayList <String> VISITED_URL; //sebagai pencatat URL yang pernah dikunjungi
+    private String URL; //alamat utama yang akan di crawler
+    private String NAMA_HOST; //untuk parsing dari sebuah alamat website
+                            //misalkan https://softscient.com/index.php/contoh post
+                            //maka MAIN_HOST nya adalah https://softscients.com
+    private int COUNT_INDEX = 1; //untuk menghitung jumlah URL yang dikunjungi
+    private Connection conn = null;
+    private PreparedStatement pstmt;
+    public CrawlerRekursif(File file,String url){
         try {
-            String db = "jdbc:sqlite:D:/softcsients.db";
-            // create a connection to the database
-            conn = DriverManager.getConnection(db);            
-            System.out.println("Connection to SQLite has been established.");
-            // SQL statement for creating a new table
+            String db = "jdbc:sqlite:"+file.getPath();            
+            conn = DriverManager.getConnection(db);
             String sql = "CREATE TABLE IF NOT EXISTS link (\n"
                     + "	id integer PRIMARY KEY,\n"
                     + "	name text NOT NULL, \n"
                     + "	error text \n"
                     + ");";
-            Statement stmt = conn.createStatement();
-            // create a new table
+            Statement stmt = conn.createStatement();            
             stmt.execute(sql);
             String insert = "INSERT INTO link (name,error) VALUES(?,?)";
-            pstmt = conn.prepareStatement(insert);
-        
+            pstmt = conn.prepareStatement(insert);        
             VISITED_URL = new ArrayList();
-            this.MAIN_URL=url;
-            MAIN_HOST = new URL(url).getHost();
+            this.URL=url;
+            NAMA_HOST = new URL(url).getHost();
             Thread tr = new Thread(new Runnable(){
                 @Override
                 public void run() {
@@ -77,11 +75,14 @@ public class CrawlerRekursif {
         //https://softscients.com/
         //http://www.detik.com/
         //https://idschool.net/
-        //https://www.reyneraea.com/
-        CrawlerRekursif m = new CrawlerRekursif("https://softscients.com/");
+        //https://www.reyneraea.com/        
+        
+        File file = new File("D:/cdc.db");
+        
+        CrawlerRekursif m = new CrawlerRekursif(file,"https://cdc.uns.ac.id/");
         
     }
-    public void scrap(String f){       
+    private void scrap(String f){       
         try {
             Document doc = Jsoup.connect(f).userAgent("Mozilla").get();
             Elements links = doc.select("a[href]");
@@ -100,20 +101,22 @@ public class CrawlerRekursif {
                       !lnk.contains(".jpg") &
                       !lnk.contains(".jpeg") &
                       !lnk.contains(".bmp") &
-                      !lnk.contains(".xlsx") &
+                      !lnk.contains(".xlsx") & 
+                      !lnk.contains("=mobile") & //abaikan versi mobile
+                      !lnk.contains("?amp") & //abaikan versi AMP
                       !lnk.contains(".xls") &
                       !lnk.contains(".txt") &
                       !lnk.contains(".docx") &
                       !lnk.contains(".rar") &
                       !lnk.contains(".gif") &
                       !lnk.contains(".zip") &
-                      !lnk.contains("tag") &
-                      !lnk.contains("page") &
+                      !lnk.contains("tag") & //ini untuk wordpress, abaikan tag
+                      !lnk.contains("page") & //ini untuk wordpress, abaikan page
                       !lnk.contains(".csv") &
-                      !lnk.contains("category")){
+                      !lnk.contains("category")){ //ini untuk wordpress, abaikan page
                   String host = new URL(lnk).getHost();
-                  //jika link tersebut milik HOST, lanjutkan saja                  
-                  if(host.equals(MAIN_HOST) & !lnk.equals(MAIN_URL)){ 
+                  //jika link tersebut milik HOST, lanjutkan saja               
+                  if(host.equals(NAMA_HOST) & !lnk.equals(URL)){ 
                       local_url.add(lnk);
                       if(!VISITED_URL.contains(lnk)){ //masukan link jika belum pernah dikunjungi    
                           pstmt.setString(1,lnk); //tambahkan ke db
@@ -121,8 +124,8 @@ public class CrawlerRekursif {
                           pstmt.executeUpdate();
                           System.out.println("\t"+COUNT_INDEX+" : "+lnk);
                           COUNT_INDEX++;                          
-                          VISITED_URL.add(lnk);
-                          scrap(lnk);                          
+                          VISITED_URL.add(lnk); //tambahkan ke visited_url
+                          scrap(lnk); //lakukan scraping lagi           
                       }
                   }
               }
